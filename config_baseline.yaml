@@ -1,0 +1,14 @@
+Training:
+  run_name: vae
+  run_tag: reconstruction_methods
+  seed: 5
+  amp: True
+Dataset:
+  train_batchsize: 32
+  test_batchsize: 32
+  train_number_workers: 8
+  test_number_workers: 8
+  class_name: screw
+  image_size: 224
+  training_path: /media/mostafahaggag/Shared_Drive/selfdevelopment/datasets/mvist
+
