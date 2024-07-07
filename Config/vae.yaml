@@ -1,0 +1,21 @@
+Dataset:
+  class_name: screw
+  training_path: /media/mostafahaggag/Shared_Drive/selfdevelopment/datasets/mvist
+  train_batchsize: 32
+  test_batchsize: 32
+  train_number_workers: 8
+  test_number_workers: 8
+Model:
+  type: VanillaVAE
+  image_size: 64
+  hidden_dim: [32, 64, 128, 256, 512]
+  in_channels: 1
+  latent_dim: 128
+Training:
+  amp: true
+  lr: 0.0001
+  kl_weight: 0.004
+  num_epochs: 100
+  seed: 5
+  run_name: vae
+  run_tag: test

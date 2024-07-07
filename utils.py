@@ -23,8 +23,6 @@ def set_log(log_dir):
     logging.getLogger().addHandler(console)
 
 
-
-
 def init_seeds(seed=0):
     # Initialize random number generator (RNG) seeds https://pytorch.org/docs/stable/notes/randomness.html
     random.seed(seed)
@@ -78,6 +76,28 @@ def calculate_mean_std(image_dir):
     std = np.std(all_pixels, axis=0)
     print(f"The calculated mean is equal to {mean} and The calculated std is equal to {std}")
     return mean, std
+
+
+class Averager:
+    def __init__(self):
+        self.current_total = 0.0
+        self.iterations = 0.0
+
+    def send(self, value):
+        self.current_total += value
+        self.iterations += 1
+
+    @property
+    def value(self):
+        if self.iterations == 0:
+            return 0
+        else:
+            return 1.0 * self.current_total / self.iterations
+
+    def reset(self):
+        self.current_total = 0.0
+        self.iterations = 0.0
+
 
 if __name__ == "__main__":
     # Directory containing your images
