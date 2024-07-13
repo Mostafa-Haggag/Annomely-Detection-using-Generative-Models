@@ -10,7 +10,11 @@ CLASS_NAMES = ['bottle', 'cable', 'capsule', 'carpet', 'grid',
                'hazelnut', 'leather', 'metal_nut', 'pill', 'screw',
                'tile', 'toothbrush', 'transistor', 'wood', 'zipper']
 
+normal_params= {'screw':{"mean":[0.7222489502266376],"std":[0.13370024503095784]}}
+
+
 # Taken from https://github.com/tkdleksms/LG_ES_anomaly/blob/main/AnoViT/dataset.py
+
 class MVTecDataset(Dataset):
     def __init__(self, image_size, dataset_path, class_name, is_train=True, transform_x=T.ToTensor()):
         super(MVTecDataset, self).__init__()
@@ -31,7 +35,6 @@ class MVTecDataset(Dataset):
         x, y, mask = self.x[idx], self.y[idx], self.mask[idx]
         # are you sure you want to convert it to rgb ??? It is laoded Grey scale
         x = Image.open(x)
-        print(f"Image is open in this mode {x.mode}")
         x = self.transform_x(x)
 
         if mask == None:
@@ -81,10 +84,17 @@ class MVTecDataset(Dataset):
 
 
 def get_train_transform(img_dir,class_name,img_size):
-    mean,std = calculate_mean_std(os.path.join(img_dir, class_name, 'train', 'good'))
-    return T.Compose([T.Resize((img_size, img_size)),
+    # mean,std = calculate_mean_std(os.path.join(img_dir, class_name, 'train', 'good'))
+    # transform.append(T.RandomCrop((128,128)))
+    # transform.append(T.RandomHorizontalFlip(p=0.5))
+    # transform.append(T.RandomVerticalFlip(p=0.5))
+
+    return T.Compose([
+                      T.Resize((img_size, img_size)),
+                      T.RandomHorizontalFlip(p=0.5),
+                      T.RandomVerticalFlip(p=0.5),
                       T.ToTensor(),
-                     T.Normalize(mean=mean,std=std),
+                     T.Normalize(mean=normal_params[class_name]["mean"],std=normal_params[class_name]["std"]),
                     ])
 
 

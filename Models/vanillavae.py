@@ -16,11 +16,14 @@ class VanillaVAE(BaseVAE):
         super(VanillaVAE, self).__init__()
 
         self.latent_dim = latent_dim
-
+        self.in_channels = in_channels
         modules = []
+
         if hidden_dims is None:
             hidden_dims = [32, 64, 128, 256, 512]
-
+        else:
+            print(hidden_dims)
+        self.ultimate_level = hidden_dims[-1]
         size_image_after_encoder = int(image_size / (2 ** len(hidden_dims)))
         self.size_image_after_encoder = size_image_after_encoder
         # Build Encoder
@@ -35,13 +38,27 @@ class VanillaVAE(BaseVAE):
             in_channels = h_dim
 
         self.encoder = nn.Sequential(*modules)
-        self.fc_mu = nn.Linear(hidden_dims[-1]*size_image_after_encoder*size_image_after_encoder, latent_dim)
-        self.fc_var = nn.Linear(hidden_dims[-1]*size_image_after_encoder*size_image_after_encoder, latent_dim)
+        # self.fc_mu = nn.Linear(hidden_dims[-1]*size_image_after_encoder*size_image_after_encoder, latent_dim)
+        # self.fc_var = nn.Linear(hidden_dims[-1]*size_image_after_encoder*size_image_after_encoder, latent_dim)
+        self.fc_e = nn.Sequential(
+            nn.Linear(hidden_dims[-1]*size_image_after_encoder*size_image_after_encoder, 1024),
+            nn.BatchNorm1d(1024),
+            nn.LeakyReLU(0.2),
+            nn.Linear(1024, latent_dim*2),
+        )
 
+        # # decode
+        self.fc_d = nn.Sequential(
+            nn.Linear(latent_dim, 1024),
+            nn.BatchNorm1d(1024),
+            nn.LeakyReLU(0.2),
+            nn.Linear(1024, hidden_dims[-1] * size_image_after_encoder*size_image_after_encoder),
+            nn.LeakyReLU(0.2)
+        )
         # Build Decoder
         modules = []
         # you go down in the size of the image from 64 to 2
-        self.decoder_input = nn.Linear(latent_dim, hidden_dims[-1] * size_image_after_encoder*size_image_after_encoder)
+        # self.decoder_input = nn.Linear(latent_dim, hidden_dims[-1] * size_image_after_encoder*size_image_after_encoder)
 
         hidden_dims.reverse()
 
@@ -69,7 +86,7 @@ class VanillaVAE(BaseVAE):
                                                output_padding=1),
                             nn.BatchNorm2d(hidden_dims[-1]),
                             nn.LeakyReLU(),
-                            nn.Conv2d(hidden_dims[-1], out_channels= 3,
+                            nn.Conv2d(hidden_dims[-1], out_channels= self.in_channels ,
                                       kernel_size= 3, padding= 1),
                             nn.Tanh())
 
@@ -85,9 +102,10 @@ class VanillaVAE(BaseVAE):
 
         # Split the result into mu and var components
         # of the latent Gaussian distribution
-        mu = self.fc_mu(result)
-        log_var = self.fc_var(result)
+        # mu = self.fc_mu(result)
+        # log_var = self.fc_var(result)
 
+        mu,log_var=self.fc_e(result).chunk(2, dim=-1)
         return [mu, log_var]
 
     def decode(self, z: Tensor) -> Tensor:
@@ -97,8 +115,8 @@ class VanillaVAE(BaseVAE):
         :param z: (Tensor) [B x D]
         :return: (Tensor) [B x C x H x W]
         """
-        result = self.decoder_input(z)
-        result = result.view(-1, 512, self.size_image_after_encoder, self.size_image_after_encoder)
+        result = self.fc_d (z)
+        result = result.view(-1, self.ultimate_level , self.size_image_after_encoder, self.size_image_after_encoder)
         result = self.decoder(result)
         result = self.final_layer(result)
         return result
@@ -139,7 +157,8 @@ class VanillaVAE(BaseVAE):
         kld_weight = kwargs['kld_weight'] # Account for the minibatch samples from the dataset
         # he is using the mean square error in here directly
         recons_loss =F.mse_loss(recons, input)
-
+        # recons_loss = F.binary_cross_entropy(recons, input, reduction='sum')
+        # kld_loss = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
 
         kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
 
